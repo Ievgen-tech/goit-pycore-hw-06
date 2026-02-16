@@ -12,10 +12,20 @@ class Field:
     """Base class for contact record fields."""
 
     def __init__(self, value: str) -> None:
-        self.value = value
+        self._value = value
 
     def __str__(self) -> str:
-        return str(self.value)
+        return str(self._value)
+
+    @property
+    def value(self) -> str:
+        """Get field value."""
+        return self._value
+
+    @value.setter
+    def value(self, new_value: str) -> None:
+        """Set field value."""
+        self._value = new_value
 
 
 class Name(Field):
@@ -27,9 +37,25 @@ class Phone(Field):
 
     def __init__(self, value: str) -> None:
         # Validation: check that the value contains exactly 10 digits
+        self._validate(value)
+        super().__init__(value)
+
+    @staticmethod
+    def _validate(value: str) -> None:
+        """Validate phone number format."""
         if not value.isdigit() or len(value) != 10:
             raise ValueError("Phone number must contain exactly 10 digits")
-        super().__init__(value)
+
+    @property
+    def value(self) -> str:
+        """Get phone number value."""
+        return self._value
+
+    @value.setter
+    def value(self, new_value: str) -> None:
+        """Set phone number value with validation."""
+        self._validate(new_value)
+        self._value = new_value
 
 
 class Record:
