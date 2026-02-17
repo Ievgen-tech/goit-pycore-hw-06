@@ -3,58 +3,38 @@
 This module implements a contact management system with classes for
 storing and managing contacts with their phone numbers.
 """
-
 from collections import UserDict
-from typing import Optional
 
 
 class Field:
     """Base class for contact record fields."""
 
     def __init__(self, value: str) -> None:
-        self._value = value
+        self._value: str = ""
+        self.value = value
+
+    @property
+    def value(self) -> str:
+        return self._value
+
+    @value.setter
+    def value(self, new_value: str) -> None:
+        self._value = new_value
 
     def __str__(self) -> str:
         return str(self._value)
 
-    @property
-    def value(self) -> str:
-        """Get field value."""
-        return self._value
-
-    @value.setter
-    def value(self, new_value: str) -> None:
-        """Set field value."""
-        self._value = new_value
-
-
 class Name(Field):
     """Class for storing contact name. Required field."""
-
 
 class Phone(Field):
     """Class for storing phone number with validation (10 digits)."""
 
-    def __init__(self, value: str) -> None:
-        # Validation: check that the value contains exactly 10 digits
-        self._validate(value)
-        super().__init__(value)
-
-    @staticmethod
-    def _validate(value: str) -> None:
-        """Validate phone number format."""
-        if not value.isdigit() or len(value) != 10:
-            raise ValueError("Phone number must contain exactly 10 digits")
-
-    @property
-    def value(self) -> str:
-        """Get phone number value."""
-        return self._value
-
-    @value.setter
+    @Field.value.setter
     def value(self, new_value: str) -> None:
-        """Set phone number value with validation."""
-        self._validate(new_value)
+        # Validation: digits only and exactly 10 characters
+        if not new_value.isdigit() or len(new_value) != 10:
+            raise ValueError("Phone number must contain exactly 10 digits")
         self._value = new_value
 
 
@@ -66,23 +46,20 @@ class Record:
         self.phones: list[Phone] = []
 
     def add_phone(self, phone: str) -> None:
-        """Add a phone number to the record."""
         self.phones.append(Phone(phone))
 
     def remove_phone(self, phone: str) -> None:
-        """Remove a phone number from the record."""
         self.phones = [p for p in self.phones if p.value != phone]
 
     def edit_phone(self, old_phone: str, new_phone: str) -> None:
-        """Edit a phone number in the record."""
+        # Find the phone number and update it (Phone.value validation will apply)
         for phone in self.phones:
             if phone.value == old_phone:
                 phone.value = new_phone
                 return
-        raise ValueError(f"Phone number {old_phone} not found in the record")
+        raise ValueError(f"Phone number {old_phone} not found")
 
-    def find_phone(self, phone: str) -> Optional[Phone]:
-        """Find a phone number in the record."""
+    def find_phone(self, phone: str) -> Phone | None:
         for p in self.phones:
             if p.value == phone:
                 return p
@@ -92,61 +69,57 @@ class Record:
         return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
 
 
-class AddressBook(UserDict):
+class AddressBook(UserDict[str, Record]):
     """Class for storing records and managing them."""
 
     def add_record(self, record: Record) -> None:
-        """Add a record to the address book."""
         self.data[record.name.value] = record
 
-    def find(self, name: str) -> Optional[Record]:
-        """Find a record by name."""
+    def find(self, name: str) -> Record | None:
         return self.data.get(name)
 
     def delete(self, name: str) -> None:
-        """Delete a record by name."""
         if name in self.data:
             del self.data[name]
 
-
-# Example usage and testing
+# --- Test block with sample data ---
 if __name__ == "__main__":
     # Create a new address book
-    address_book = AddressBook()
+    book = AddressBook()
 
-    # Create a record for Michael
-    michael_record = Record("Michael")
-    michael_record.add_phone("3805551234")
-    michael_record.add_phone("3805559876")
+    # Create a record for Andriy
+    andriy_record = Record("Andriy")
+    andriy_record.add_phone("0981234567")
+    andriy_record.add_phone("0509876543")
 
-    # Add Michael's record to the address book
-    address_book.add_record(michael_record)
+    # Add Andriy record to the address book
+    book.add_record(andriy_record)
 
-    # Create and add a new record for Sarah
-    sarah_record = Record("Sarah")
-    sarah_record.add_phone("3805553210")
-    address_book.add_record(sarah_record)
+    # Create and add a new record for Maria
+    maria_record = Record("Maria")
+    maria_record.add_phone("0675554433")
+    book.add_record(maria_record)
 
-    # Display all records in the book
-    print("All contacts in the address book:")
-    for contact_name, contact_record in address_book.data.items():
+    # Print all records in the book
+    print("--- All contacts in the address book ---")
+    for contact_name, contact_record in book.data.items():
         print(contact_record)
 
-    # Find and edit Michael's phone number
-    michael = address_book.find("Michael")
-    if michael:
-        michael.edit_phone("3805551234", "3805552222")
+    # Find and edit Andriy's phone number
+    # Change 0981234567 to 0631112233
+    andriy = book.find("Andriy")
+    if andriy:
+        andriy.edit_phone("0981234567", "0631112233")
+        print("\n--- Andriy after phone edit ---")
+        print(andriy)
 
-        print("\nAfter editing Michael's phone:")
-        print(michael)
+        # Search for a specific phone number in Andriy's record
+        found_phone = andriy.find_phone("0509876543")
+        print(f"\nFound phone in {andriy.name}: {found_phone}")
 
-        # Search for a specific phone number in Michael's record
-        found_phone = michael.find_phone("3805559876")
-        print(f"\nFound phone for {michael.name}: {found_phone}")
+    # Delete Maria's record
+    book.delete("Maria")
 
-    # Delete Sarah's record
-    address_book.delete("Sarah")
-
-    print("\nAfter deleting Sarah:")
-    for contact_name, contact_record in address_book.data.items():
+    print("\n--- Address book after deleting Maria ---")
+    for contact_name, contact_record in book.data.items():
         print(contact_record)
